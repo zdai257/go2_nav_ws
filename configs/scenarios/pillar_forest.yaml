@@ -1,0 +1,9 @@
+# Many slender pillars / thin cylinders ("forest"): high obstacle count, lots of homotopy classes
+world:
+  generator:
+    density: 0.05
+    min_gap: 0.75
+    mix: {pillar: 3.0, cylinder: 1.0}
+    kind_params:
+      pillar: {side: [0.15, 0.3], height: [2.0, 3.0]}
+      cylinder: {radius: [0.1, 0.2], height: [1.0, 2.0]}

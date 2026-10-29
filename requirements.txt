@@ -1,0 +1,8 @@
+# 2D side (planners, sim2d, benchmarks, tests) - any Python >= 3.8, e.g. conda base.
+# The Isaac side uses Isaac Sim's own python via ./run_isaac.sh (see isaac_requirements.txt).
+numpy>=1.22
+pyyaml>=6.0
+matplotlib>=3.5
+pytest>=7.0
+# only for scripts/export_go2_policy.py (checkpoint -> npz):
+# torch

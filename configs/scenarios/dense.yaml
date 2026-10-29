@@ -1,0 +1,6 @@
+# Near the packing limit with Go2-passable gaps (min_gap 0.7 m > 2 x inflation radius)
+world:
+  generator:
+    density: 0.08
+    min_gap: 0.7
+    mix: {pillar: 1.0, cube: 1.0, cylinder: 1.0}

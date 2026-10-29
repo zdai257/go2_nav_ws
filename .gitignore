@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.isaac_pydeps/
+outputs/
+assets/policies/*/checkpoint.pt

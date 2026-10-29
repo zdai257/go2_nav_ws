@@ -1,0 +1,10 @@
+# Packages normally bundled with Isaac Sim 4.5 (omni.kit.pip_archive / omni.isaac.ml_archive) that are
+# missing from this install. run_isaac.sh installs them with --no-deps into ./.isaac_pydeps
+# (workspace-private; packages Isaac still bundles are deliberately not duplicated here).
+--extra-index-url https://download.pytorch.org/whl/cpu
+numpy==1.26.0
+torch==2.5.1+cpu
+sympy==1.13.1
+pillow==10.4.0
+typing_extensions>=4.12
+packaging==23.2

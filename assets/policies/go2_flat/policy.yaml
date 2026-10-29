@@ -1,0 +1,29 @@
+# Interface of the Isaac Lab "Isaac-Velocity-Flat-Unitree-Go2-v0" policy (rsl_rl PPO actor).
+# Values mirror isaaclab_assets UNITREE_GO2_CFG and the locomotion velocity env cfg.
+weights: policy.npz
+activation: elu
+sim_dt: 0.005          # physics step [s]
+decimation: 4          # policy runs every 4 physics steps (50 Hz)
+action_scale: 0.25     # q_target = q_default + action_scale * action
+
+# Joint order the network was trained with (PhysX breadth-first order of the Go2 articulation).
+joint_names: [FL_hip_joint, FR_hip_joint, RL_hip_joint, RR_hip_joint,
+              FL_thigh_joint, FR_thigh_joint, RL_thigh_joint, RR_thigh_joint,
+              FL_calf_joint, FR_calf_joint, RL_calf_joint, RR_calf_joint]
+default_joint_pos: [0.1, -0.1, 0.1, -0.1,
+                    0.8, 0.8, 1.0, 1.0,
+                    -1.5, -1.5, -1.5, -1.5]
+
+# PD drive used during training (DC motor model, implicit PD in sim)
+stiffness: 25.0
+damping: 0.5
+effort_limit: 23.5
+velocity_limit: 30.0
+
+# Observation layout (48): base_lin_vel(3) base_ang_vel(3) projected_gravity(3)
+#                          command(3: vx vy wz) joint_pos_rel(12) joint_vel_rel(12) last_action(12)
+command_limits:
+  vx: [-1.0, 1.0]
+  vy: [-1.0, 1.0]
+  wz: [-1.0, 1.0]
+init_base_height: 0.4

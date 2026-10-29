@@ -1,0 +1,139 @@
+# go2nav default configuration. Every key can be overridden from the CLI:
+#   --set planner.name=rrt_star world.generator.density=0.12
+# or by a scenario file passed with --config (merged on top of this file).
+
+task:
+  start: [-8.0, -8.0, 0.0]        # x [m], y [m], yaw [rad]
+  goal:  [8.0, 8.0, 0.0]
+  random_start_goal: false        # sample start/goal in free space (uses world.generator.seed)
+  min_start_goal_dist: 10.0
+
+world:
+  bounds: [-10.0, 10.0, -10.0, 10.0]   # arena xmin xmax ymin ymax [m]
+  file: null                      # load a saved layout (worlds/*.yaml) instead of sampling
+  keepout_radius: 1.2             # free disc around start and goal [m]
+  walls: true                     # enclose the arena with walls (Isaac + 2D sim)
+  ensure_feasible: true           # resample (seed+1, ...) until a ground-truth path start->goal exists
+  generator:
+    seed: 0
+    count: 35                     # number of obstacles (ignored if density is set)
+    density: null                 # alternatively: footprint coverage of the arena (overrides count).
+                                  # random packing saturates at ~0.085 with min_gap 0.7, ~0.15 with 0.35, ~0.21 with 0.2
+    mix: {pillar: 1.0, cube: 1.0, cylinder: 1.0}
+    min_gap: 0.7                  # min gap between obstacle bounding circles [m]
+    border_margin: 0.6
+    kind_params: {}               # override size ranges, e.g. {cylinder: {radius: [0.2, 0.8]}}
+  extra: []                       # hand-placed obstacles: [{kind: cube, x: 1, y: 2, size: [0.5, 0.5], height: 0.5}]
+  runtime_spawn:                  # obstacles that appear during the run (tests replanning)
+    count: 0
+    start_after_s: 5.0
+    interval_s: 4.0
+    on_path: true                 # drop them onto the current path ahead of the robot
+    ahead_distance: [1.5, 3.0]
+
+robot:
+  # footprint model used by costmaps (Go2 trunk ~0.70 x 0.31 m incl. legs)
+  length: 0.70
+  width: 0.31
+
+map:
+  source: lidar                   # ground_truth | lidar
+  resolution: 0.1                 # [m/cell]
+  min_obstacle_height: 0.0
+  unknown_as_free: true           # optimistic planning through unexplored space
+  costmap:
+    inflation_radius: 0.32        # disc-robot inflation for grid / sampling planners [m]
+    cost_falloff: 0.6             # soft cost band beyond the inflation radius [m]
+    footprint_circles: [[0.22, 0.0], [0.0, 0.0], [-0.22, 0.0]]
+    footprint_radius: 0.19
+  lidar_mapper: {}
+
+perception:
+  lidar:
+    enabled: true
+    mount: nav_lidar              # URDF frame: nav_lidar (horizontal, default) | radar (Unitree L1, tilted)
+    horizontal_fov: 360.0
+    horizontal_resolution: 1.0    # deg
+    vertical_fov: 30.0            # deg (2.5D: catches low cubes)
+    vertical_resolution: 2.0      # deg
+    min_range: 0.2
+    max_range: 8.0
+    rate_hz: 10.0
+    z_min: 0.06                   # keep returns between these heights (world z) as obstacles [m]
+    z_max: 1.5
+  camera:
+    enabled: false                # front RGB-D camera (Isaac only)
+    resolution: [640, 480]
+    rate_hz: 10.0
+
+planner:
+  name: astar                     # astar | dijkstra | theta_star | greedy_bfs | hybrid_astar | rrt_star | rrt | <plugin>
+  common:
+    densify_step: 0.1
+    time_limit: 5.0
+  params:
+    astar:       {heuristic: octile, heuristic_weight: 1.0, cost_weight: 2.0}
+    dijkstra:    {cost_weight: 2.0}
+    greedy_bfs:  {cost_weight: 2.0}
+    theta_star:  {}
+    hybrid_astar:
+      xy_resolution: 0.2
+      yaw_bins: 72
+      step: 0.4
+      turn_radii: [0.5, 1.0]
+      allow_reverse: true
+      allow_rotate_in_place: true
+      allow_strafe: false
+      cost_weight: 1.0
+    rrt_star:    {max_iterations: 3000, step: 0.7, goal_bias: 0.1, seed: 0}
+    rrt:         {max_iterations: 5000, step: 0.7, goal_bias: 0.1, seed: 0}
+
+follower:
+  name: pure_pursuit              # pure_pursuit | holonomic
+  common:
+    lookahead: 0.6
+    goal_xy_tol: 0.2
+    goal_yaw_tol_deg: 10.0
+    align_final_yaw: true
+    # min_turn_rate: the RL gait barely reacts to |wz| < ~0.4 when standing, so in-place turns get a floor
+    limits: {vx_max: 0.8, vx_min: -0.4, vy_max: 0.4, wz_max: 1.0, min_turn_rate: 0.6}
+  params:
+    pure_pursuit: {rotate_in_place_deg: 50.0}
+    holonomic: {k_pos: 1.2, k_yaw: 1.5}
+
+navigator:
+  replan_period: 0.0
+  path_check_period: 0.25
+  max_cross_track: 0.8
+  timeout: 180.0
+
+locomotion:
+  backend: policy                 # policy (RL walking, physics) | kinematic (ideal base tracking, legs frozen)
+  # go2_rough: Isaac Lab rough-terrain policy (1500 iters) - proper stance (~0.33 m), turns in place.
+  # go2_flat:  Isaac Lab flat policy (300 iters) - crouched gait, unreliable in-place turning.
+  # Your own Isaac Lab checkpoint: scripts/export_go2_policy.py --checkpoint ... --out-dir assets/policies/<name>
+  policy_dir: assets/policies/go2_rough
+  actuator: implicit              # implicit (PhysX PD) | dc_motor (explicit Isaac Lab DCMotor torques)
+  kinematic:
+    tau: 0.15                     # first-order velocity response [s]
+
+isaac:
+  headless: false
+  physics_dt: 0.005               # must match the policy (200 Hz)
+  rendering_dt: 0.02
+  control_dt: 0.02                # navigator / follower rate (50 Hz)
+  robot_source: urdf              # urdf (workspace digital twin) | nvidia (Isaac asset server Go2 USD)
+  urdf: assets/go2/urdf/go2.urdf
+  usd_cache: assets/go2/usd/go2_from_urdf.usd
+  draw_debug: true                # path / goal / trajectory overlays
+  follow_camera: true
+  max_steps: 0                    # 0 = until the episode ends
+  close_on_finish: false          # keep the window open after the episode
+
+sim2d:
+  dt: 0.05
+  velocity_noise: 0.03            # multiplicative tracking noise
+  tau: 0.15
+
+output:
+  dir: outputs

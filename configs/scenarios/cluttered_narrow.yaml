@@ -1,0 +1,9 @@
+# Denser clutter where some gaps are too narrow for the Go2 -> planners must find detours.
+# ensure_feasible resamples seeds until a path exists.
+world:
+  generator:
+    density: 0.09
+    min_gap: 0.5
+    mix: {pillar: 1.0, cube: 2.0, cylinder: 2.0}
+  ensure_feasible: true
+  max_regenerate: 30
